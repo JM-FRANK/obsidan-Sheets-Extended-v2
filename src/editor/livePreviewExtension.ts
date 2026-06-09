@@ -34,12 +34,10 @@ export function createLivePreviewExtension(plugin: SheetsExtendedPlugin): Extens
 
 			return decorations.map(transaction.changes);
 		},
+		provide: (field) => EditorView.decorations.from(field),
 	});
 
-	return [
-		Prec.highest(field),
-		EditorView.decorations.from(field),
-	];
+	return Prec.highest(field);
 }
 
 function shouldRebuild(transaction: Transaction): boolean {
