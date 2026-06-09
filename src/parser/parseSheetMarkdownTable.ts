@@ -22,7 +22,10 @@ export function parseSheetMarkdownTable(
 		throw new Error('Markdown table separator row is missing.');
 	}
 
-	const tableStyle = parseTableStyle(lines[separatorIndex] ?? '');
+	const separatorLine = lines[separatorIndex] ?? '';
+	const tableStyle = parseTableStyle(separatorLine);
+	const separatorCells = splitMarkdownTableRow(separatorLine);
+	const columnAlignments = separatorCells.map(parseColumnAlignment);
 	const tableRows = [
 		...lines.slice(0, separatorIndex),
 		...lines.slice(separatorIndex + 1),
@@ -42,6 +45,7 @@ export function parseSheetMarkdownTable(
 					type: 'markdown',
 					content,
 				},
+				align: columnAlignments[colIndex] ?? '',
 			});
 		}),
 	);
@@ -61,6 +65,31 @@ function parseTableStyle(separatorLine: string): { classNames: string[]; inlineS
 		classNames: style.classNames,
 		inlineStyle: style.inlineStyle,
 	};
+}
+
+export function parseColumnAlignment(separatorCell: string): string {
+	const clean = parseStyleDirective(separatorCell).cleanContent.trim();
+
+	if (!/^:?-+:?$/.test(clean)) {
+		return '';
+	}
+
+	const left = clean.startsWith(':');
+	const right = clean.endsWith(':');
+
+	if (left && right) {
+		return 'center';
+	}
+
+	if (right) {
+		return 'right';
+	}
+
+	if (left) {
+		return 'left';
+	}
+
+	return '';
 }
 
 function splitMarkdownTableRow(line: string): string[] {
@@ -99,7 +128,6 @@ function isSeparatorLine(line: string): boolean {
 
 	return cells.length > 0 && cells.every((cell) => {
 		const clean = parseStyleDirective(cell).cleanContent.trim();
-		return /^:?-{3,}:?$/.test(clean);
+		return /^:?-+:?$/.test(clean);
 	});
 }
-

@@ -42,7 +42,7 @@ export function isMarkdownTableSeparatorLine(line: string): boolean {
 
 	return cells.length > 0 && cells.every((cell) => {
 		const clean = parseStyleDirective(cell).cleanContent.trim();
-		return /^:?-{3,}:?$/.test(clean);
+		return /^:?-+:?$/.test(clean);
 	});
 }
 
@@ -76,4 +76,3 @@ function splitMarkdownTableRow(line: string): string[] {
 	cells.push(current.trim());
 	return cells;
 }
-

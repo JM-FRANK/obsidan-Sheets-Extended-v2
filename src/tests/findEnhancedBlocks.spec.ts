@@ -30,6 +30,21 @@ describe('findEnhancedBlocks', () => {
 		expect(blocks[0]?.type).toBe('markdown-table');
 	});
 
+	it('detects enhanced Markdown tables with alignment separators', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'| A | B | C | D |',
+			'| :--- | :---: | ---: | --- |',
+			'| foo | < | bar | baz |',
+			'| 1 | 2 | 3 | 4 |',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0]?.type).toBe('markdown-table');
+	});
+
 	it('detects sheet code blocks when enabled', () => {
 		const blocks = findEnhancedBlocks(Text.of([
 			'```sheet',

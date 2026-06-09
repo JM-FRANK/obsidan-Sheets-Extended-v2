@@ -46,15 +46,15 @@ async function renderCell(cell: SheetCell, cellEl: HTMLTableCellElement, context
 		cellEl.addClass(className);
 	}
 
-	if (cell.align.length > 0) {
-		cellEl.style.textAlign = cell.align;
-	}
-
 	if (cell.inlineStyle.length > 0) {
 		cellEl.setAttribute('style', cell.inlineStyle);
 	}
 
 	applyStyleObject(cellEl, cell.resolvedStyle.inlineStyle, context.enableInlineStyles);
+
+	if (cell.align.length > 0) {
+		cellEl.style.textAlign = cell.align;
+	}
 
 	if (cell.source.type === 'markdown') {
 		await renderSheetCellMarkdown(cell.text, cellEl, context);
@@ -86,4 +86,3 @@ function applyStyleObject(
 		element.style.setProperty(property, value);
 	}
 }
-
