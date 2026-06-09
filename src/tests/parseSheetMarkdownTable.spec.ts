@@ -38,5 +38,39 @@ describe('parseSheetMarkdownTable', () => {
 		expect(model.rows[0]?.[2]?.align).toBe('right');
 		expect(model.rows[0]?.[3]?.align).toBe('');
 	});
-});
 
+	it('preserves escaped merge markers and still resolves real merge markers', () => {
+		const model = parseSheetMarkdownTable([
+			'| A | B | C | D |',
+			'| --- | --- | --- | --- |',
+			'| foo | < | literal caret \\^ | literal less \\< |',
+			'| 1 | 2 | 3 | 4 |',
+		].join('\n'), { classes: {} });
+
+		expect(model.rows[1]?.[2]?.text).toBe('literal caret \\^');
+		expect(model.rows[1]?.[3]?.text).toBe('literal less \\<');
+
+		resolveSpans(model);
+
+		expect(model.rows[1]?.[0]?.colspan).toBe(2);
+		expect(model.rows[1]?.[1]?.hidden).toBe(true);
+		expect(model.rows[1]?.[2]?.hidden).toBe(false);
+		expect(model.rows[1]?.[3]?.hidden).toBe(false);
+	});
+
+	it('keeps escaped pipes in a single cell without unescaping escaped markers', () => {
+		const model = parseSheetMarkdownTable([
+			'| A | B |',
+			'| --- | --- |',
+			'| a\\|b | \\< |',
+		].join('\n'), { classes: {} });
+
+		expect(model.rows[1]?.[0]?.text).toBe('a|b');
+		expect(model.rows[1]?.[1]?.text).toBe('\\<');
+		expect(model.rows[1]).toHaveLength(2);
+
+		resolveSpans(model);
+
+		expect(model.rows[1]?.[1]?.hidden).toBe(false);
+	});
+});

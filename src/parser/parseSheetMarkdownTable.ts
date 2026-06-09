@@ -2,6 +2,7 @@ import { createCell } from '../model/CellModel';
 import { createSheetModel, type SheetModel } from '../model/SheetModel';
 import type { SheetMetadata } from '../types';
 import { parseStyleDirective } from './parseStyleDirective';
+import { splitMarkdownTableRow } from './splitMarkdownTableRow';
 
 export function parseSheetMarkdownTable(
 	source: string,
@@ -90,37 +91,6 @@ export function parseColumnAlignment(separatorCell: string): string {
 	}
 
 	return '';
-}
-
-function splitMarkdownTableRow(line: string): string[] {
-	const trimmed = line.replace(/^\|/, '').replace(/\|$/, '');
-	const cells: string[] = [];
-	let current = '';
-	let escaping = false;
-
-	for (const char of trimmed) {
-		if (escaping) {
-			current += char;
-			escaping = false;
-			continue;
-		}
-
-		if (char === '\\') {
-			escaping = true;
-			continue;
-		}
-
-		if (char === '|') {
-			cells.push(current.trim());
-			current = '';
-			continue;
-		}
-
-		current += char;
-	}
-
-	cells.push(current.trim());
-	return cells;
 }
 
 function isSeparatorLine(line: string): boolean {

@@ -45,6 +45,36 @@ describe('findEnhancedBlocks', () => {
 		expect(blocks[0]?.type).toBe('markdown-table');
 	});
 
+	it('ignores tables that only contain escaped merge markers', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'| A | B | C |',
+			'| --- | --- | --- |',
+			'| literal less | \\< | normal |',
+			'| literal greater | \\> | normal |',
+			'| literal caret | \\^ | normal |',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toEqual([]);
+	});
+
+	it('preserves escaped markers when detecting real merge markers', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'| A | B | C | D |',
+			'| --- | --- | --- | --- |',
+			'| foo | < | literal caret \\^ | literal less \\< |',
+			'| 1 | 2 | 3 | 4 |',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0]?.type).toBe('markdown-table');
+	});
+
 	it('detects sheet code blocks when enabled', () => {
 		const blocks = findEnhancedBlocks(Text.of([
 			'```sheet',

@@ -1,9 +1,11 @@
 import { MarkdownRenderChild, type MarkdownPostProcessorContext } from 'obsidian';
 import { detectEnhancedTable } from '../detect/detectEnhancedTable';
+import { detectEnhancedMarkdownTableSource, isMarkdownTableLine, isMarkdownTableSeparatorLine } from '../editor/detectEnhancedMarkdownSource';
 import { readRenderedTable } from '../input/readRenderedTable';
 import { resolveSpans } from '../model/resolveSpans';
 import { resolveStyles } from '../model/resolveStyles';
 import { resolveVerticalHeaders } from '../model/resolveVerticalHeaders';
+import { parseSheetMarkdownTable } from '../parser/parseSheetMarkdownTable';
 import { renderEnhancedTable } from '../render/renderEnhancedTable';
 import type SheetsExtendedPlugin from '../main';
 
@@ -16,12 +18,31 @@ export function nativeTablePostProcessor(
 		return;
 	}
 
-	for (const table of Array.from(element.querySelectorAll('table'))) {
-		if (table.hasClass('sheets-extended-table') || !detectEnhancedTable(table)) {
+	for (const [tableIndex, table] of Array.from(element.querySelectorAll('table')).entries()) {
+		if (table.hasClass('sheets-extended-table')) {
 			continue;
 		}
 
-		context.addChild(new NativeTableRenderChild(plugin, table, context.sourcePath));
+		const source = getTableSource(context, table, tableIndex);
+
+		if (source) {
+			if (!detectEnhancedMarkdownTableSource(source)) {
+				continue;
+			}
+
+			context.addChild(new NativeTableRenderChild(plugin, table, context.sourcePath, source));
+			continue;
+		}
+
+		if (plugin.settings.enableDebugLogging) {
+			console.debug(`${plugin.manifest.name}: source unavailable, escape-aware detection skipped`);
+		}
+
+		if (!detectEnhancedTable(table)) {
+			continue;
+		}
+
+		context.addChild(new NativeTableRenderChild(plugin, table, context.sourcePath, null));
 	}
 }
 
@@ -30,6 +51,7 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 		private readonly plugin: SheetsExtendedPlugin,
 		private readonly table: HTMLTableElement,
 		private readonly sourcePath: string,
+		private readonly source: string | null,
 	) {
 		super(table);
 	}
@@ -40,7 +62,9 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 
 	private async render(): Promise<void> {
 		try {
-			const model = readRenderedTable(this.table);
+			const model = this.source
+				? parseSheetMarkdownTable(this.source, { classes: {} })
+				: readRenderedTable(this.table);
 			resolveSpans(model);
 			resolveVerticalHeaders(model);
 			resolveStyles(model, this.plugin.settings.enableInlineStyles);
@@ -50,7 +74,7 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 				sourcePath: this.sourcePath,
 				component: this,
 				enableInlineStyles: this.plugin.settings.enableInlineStyles,
-				useMarkdownRenderer: false,
+				useMarkdownRenderer: Boolean(this.source),
 			});
 
 			this.table.replaceWith(newTable);
@@ -60,6 +84,48 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 			}
 		}
 	}
+}
+
+function getTableSource(
+	context: MarkdownPostProcessorContext,
+	table: HTMLTableElement,
+	tableIndex: number,
+): string | null {
+	const sectionInfo = context.getSectionInfo(table);
+
+	if (!sectionInfo) {
+		return null;
+	}
+
+	const tableBlocks = extractMarkdownTableBlocks(sectionInfo.text);
+	return tableBlocks[tableIndex] ?? tableBlocks[0] ?? null;
+}
+
+function extractMarkdownTableBlocks(source: string): string[] {
+	const lines = source.split(/\r?\n/);
+	const blocks: string[] = [];
+	let lineIndex = 0;
+
+	while (lineIndex < lines.length) {
+		if (!isMarkdownTableLine(lines[lineIndex]?.trim() ?? '')) {
+			lineIndex += 1;
+			continue;
+		}
+
+		const startIndex = lineIndex;
+
+		while (lineIndex < lines.length && isMarkdownTableLine(lines[lineIndex]?.trim() ?? '')) {
+			lineIndex += 1;
+		}
+
+		const blockLines = lines.slice(startIndex, lineIndex);
+
+		if (blockLines.some((line) => isMarkdownTableSeparatorLine(line.trim()))) {
+			blocks.push(blockLines.join('\n'));
+		}
+	}
+
+	return blocks;
 }
 
 function isDisabledByFrontmatter(plugin: SheetsExtendedPlugin, sourcePath: string): boolean {

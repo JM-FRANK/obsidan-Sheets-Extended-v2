@@ -1,5 +1,6 @@
 import { isVerticalHeaderDelimiter } from '../model/resolveVerticalHeaders';
 import { parseStyleDirective } from '../parser/parseStyleDirective';
+import { splitMarkdownTableRow } from '../parser/splitMarkdownTableRow';
 
 export function detectEnhancedMarkdownTableSource(source: string): boolean {
 	const rows = source
@@ -44,35 +45,4 @@ export function isMarkdownTableSeparatorLine(line: string): boolean {
 		const clean = parseStyleDirective(cell).cleanContent.trim();
 		return /^:?-+:?$/.test(clean);
 	});
-}
-
-function splitMarkdownTableRow(line: string): string[] {
-	const trimmed = line.replace(/^\|/, '').replace(/\|$/, '');
-	const cells: string[] = [];
-	let current = '';
-	let escaping = false;
-
-	for (const char of trimmed) {
-		if (escaping) {
-			current += char;
-			escaping = false;
-			continue;
-		}
-
-		if (char === '\\') {
-			escaping = true;
-			continue;
-		}
-
-		if (char === '|') {
-			cells.push(current.trim());
-			current = '';
-			continue;
-		}
-
-		current += char;
-	}
-
-	cells.push(current.trim());
-	return cells;
 }
