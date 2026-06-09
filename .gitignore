@@ -1,0 +1,18 @@
+# Editors
+.vscode
+.idea
+*.iml
+
+# Dependencies
+node_modules
+
+# Generated plugin bundle
+main.js
+*.map
+
+# Local Obsidian plugin data
+data.json
+
+# OS files
+.DS_Store
+Thumbs.db

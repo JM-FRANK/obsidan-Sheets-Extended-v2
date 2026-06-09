@@ -1,0 +1,8 @@
+/*
+Styles for Sheets Extended.
+Keep selectors scoped with the sheets-extended prefix to avoid affecting the vault UI.
+*/
+
+.sheets-extended-settings-description {
+	color: var(--text-muted);
+}

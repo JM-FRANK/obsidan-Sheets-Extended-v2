@@ -1,0 +1,10 @@
+{
+	"id": "sheets-extended-v2",
+	"name": "Sheets Extended",
+	"version": "0.1.0",
+	"minAppVersion": "1.8.0",
+	"description": "Extended spreadsheet workflows for Obsidian.",
+	"author": "FRANKSMITH",
+	"authorUrl": "",
+	"isDesktopOnly": false
+}
