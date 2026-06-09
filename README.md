@@ -101,6 +101,12 @@ npm run lint
 npm run test
 ```
 
+## Live Preview post-processing event
+
+After rendering a Live Preview table widget, Sheets Extended v2 dispatches a bubbling `sheets-extended:live-preview-rendered` event. Other plugins can listen for this event and post-process `event.detail.root`.
+
+The event fires when a non-focused enhanced table widget is first rendered, and when cached widget DOM is restored. It does not fire while the cursor is inside the table source because the widget is not displayed.
+
 Obsidian loads the release files from a plugin folder:
 
 - `manifest.json`

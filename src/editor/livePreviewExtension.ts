@@ -147,6 +147,13 @@ class EnhancedTableWidget extends WidgetType {
 
 		if (cachedDom) {
 			container.appendChild(cachedDom.cloneNode(true));
+			dispatchSheetsExtendedRenderedEvent(container, {
+				table: container.querySelector('table'),
+				tableWrapper: container.querySelector('.table-wrapper'),
+				source: this.block.source,
+				sourcePath: this.sourcePath,
+				blockType: this.block.type,
+			});
 			return container;
 		}
 
@@ -193,6 +200,13 @@ class EnhancedTableWidget extends WidgetType {
 			});
 			tableWrapper.appendChild(table);
 			cacheRenderedWidget(this.key, tableWrapper);
+			dispatchSheetsExtendedRenderedEvent(container, {
+				table,
+				tableWrapper,
+				source: this.block.source,
+				sourcePath: this.sourcePath,
+				blockType: this.block.type,
+			});
 		} catch (error) {
 			if (this.plugin.settings.enableDebugLogging) {
 				console.warn(`${this.plugin.manifest.name}: live preview enhancement failed`, error);
@@ -204,6 +218,27 @@ class EnhancedTableWidget extends WidgetType {
 			});
 		}
 	}
+}
+
+function dispatchSheetsExtendedRenderedEvent(
+	root: HTMLElement,
+	detail: {
+		table: Element | null;
+		tableWrapper: Element | null;
+		source: string;
+		sourcePath: string;
+		blockType: string;
+	},
+): void {
+	queueMicrotask(() => {
+		root.dispatchEvent(new CustomEvent('sheets-extended:live-preview-rendered', {
+			bubbles: true,
+			detail: {
+				root,
+				...detail,
+			},
+		}));
+	});
 }
 
 function createWidgetKey(plugin: SheetsExtendedPlugin, block: EnhancedEditorBlock, sourcePath: string): string {
