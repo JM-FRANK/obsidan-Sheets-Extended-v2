@@ -11,6 +11,10 @@ Keep selectors scoped with the sheets-extended prefix to avoid affecting the vau
 	width: 100%;
 }
 
+.sheets-extended-live-preview {
+	margin-block: var(--size-4-2);
+}
+
 .sheets-extended-error {
 	border-inline-start: 4px solid var(--text-error);
 	color: var(--text-normal);

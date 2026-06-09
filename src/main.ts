@@ -1,4 +1,5 @@
 import { Plugin } from 'obsidian';
+import { createLivePreviewExtension } from './editor/livePreviewExtension';
 import { nativeTablePostProcessor } from './processors/nativeTablePostProcessor';
 import { sheetCodeBlockProcessor } from './processors/sheetCodeBlockProcessor';
 import { DEFAULT_SETTINGS, SheetsExtendedSettingTab } from './settings';
@@ -15,6 +16,7 @@ export default class SheetsExtendedPlugin extends Plugin {
 		this.registerMarkdownCodeBlockProcessor('sheet', (source, element, context) =>
 			sheetCodeBlockProcessor(this, source, element, context),
 		);
+		this.registerEditorExtension(createLivePreviewExtension(this));
 	}
 
 	onunload(): void {

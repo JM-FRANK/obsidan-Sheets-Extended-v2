@@ -1,0 +1,69 @@
+import { Text } from '@codemirror/state';
+import { describe, expect, it } from 'vitest';
+import { findEnhancedBlocks } from '../editor/findEnhancedBlocks';
+
+describe('findEnhancedBlocks', () => {
+	it('ignores ordinary Markdown tables', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'| A | B |',
+			'| --- | --- |',
+			'| foo | bar |',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toEqual([]);
+	});
+
+	it('detects enhanced Markdown tables', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'| A | B | C |',
+			'| --- | --- | --- |',
+			'| foo | < | bar |',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0]?.type).toBe('markdown-table');
+	});
+
+	it('detects sheet code blocks when enabled', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'```sheet',
+			'| A | B |',
+			'| --- | --- |',
+			'| foo | bar |',
+			'```',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0]?.type).toBe('sheet-code-block');
+	});
+
+	it('can skip Markdown tables independently of sheet code blocks', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'| A | B |',
+			'| --- | --- |',
+			'| foo | < |',
+			'',
+			'```sheet',
+			'| A | B |',
+			'| --- | --- |',
+			'| foo | bar |',
+			'```',
+		]), {
+			includeMarkdownTables: false,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0]?.type).toBe('sheet-code-block');
+	});
+});
+

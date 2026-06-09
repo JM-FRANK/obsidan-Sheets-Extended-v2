@@ -25,10 +25,12 @@ Compared with the original Sheet Extended plugin, this version focuses on safer 
 - `sheet` fenced code blocks for explicit enhanced tables.
 - Cell and table style directives such as `content ~ .className { color: "red" }`.
 - Frontmatter opt-out for native Markdown tables with `disable-sheet: true`.
+- Live Preview rendering when the cursor is outside an enhanced table block.
 
 ## Non-goals
 
-- No Live Preview or CodeMirror editor extension.
+- No source-mode rendering or CodeMirror editing extension.
+- No editor commands, keymaps, table editing, formatting, sorting, formulas, or CSV support.
 - No Markdown source rewriting.
 - No table formatting, sorting, navigation, CSV export, or formula support.
 - No re-rendering of ordinary Markdown tables that do not contain enhanced syntax.
