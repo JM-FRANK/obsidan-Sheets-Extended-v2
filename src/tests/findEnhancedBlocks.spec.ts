@@ -65,5 +65,38 @@ describe('findEnhancedBlocks', () => {
 		expect(blocks).toHaveLength(1);
 		expect(blocks[0]?.type).toBe('sheet-code-block');
 	});
-});
 
+	it('detects enhanced Markdown tables inside blockquotes with normalized source', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'> [!example]+ Table',
+			'>',
+			'> | A | B |',
+			'> | --- | --- |',
+			'> | foo | < |',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0]?.type).toBe('markdown-table');
+		expect(blocks[0]?.source).toBe('| A | B |\n| --- | --- |\n| foo | < |');
+	});
+
+	it('detects sheet code blocks inside blockquotes with normalized source', () => {
+		const blocks = findEnhancedBlocks(Text.of([
+			'> ```sheet',
+			'> | A | B |',
+			'> | --- | --- |',
+			'> | foo | bar |',
+			'> ```',
+		]), {
+			includeMarkdownTables: true,
+			includeSheetCodeBlocks: true,
+		});
+
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0]?.type).toBe('sheet-code-block');
+		expect(blocks[0]?.source).toBe('| A | B |\n| --- | --- |\n| foo | bar |');
+	});
+});

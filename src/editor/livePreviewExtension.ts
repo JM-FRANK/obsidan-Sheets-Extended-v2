@@ -1,51 +1,75 @@
-import { RangeSetBuilder } from '@codemirror/state';
-import type { Extension } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from '@codemirror/view';
+import {
+	Prec,
+	RangeSetBuilder,
+	StateEffect,
+	StateField,
+	type EditorState,
+	type Extension,
+	type Transaction,
+} from '@codemirror/state';
+import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view';
 import { Component, editorInfoField, editorLivePreviewField } from 'obsidian';
 import { parseSheetBlock } from '../input/parseSheetBlock';
-import { parseSheetMarkdownTable } from '../parser/parseSheetMarkdownTable';
 import { resolveSpans } from '../model/resolveSpans';
 import { resolveStyles } from '../model/resolveStyles';
 import { resolveVerticalHeaders } from '../model/resolveVerticalHeaders';
+import { parseSheetMarkdownTable } from '../parser/parseSheetMarkdownTable';
 import { renderEnhancedTable } from '../render/renderEnhancedTable';
 import type SheetsExtendedPlugin from '../main';
 import type { EnhancedEditorBlock } from './findEnhancedBlocks';
 import { findEnhancedBlocks } from './findEnhancedBlocks';
 
+const MAX_WIDGET_CACHE_SIZE = 64;
+const renderedWidgetCache = new Map<string, HTMLElement>();
+
+export const rebuildSheetsExtendedLivePreviewEffect = StateEffect.define<void>();
+
 export function createLivePreviewExtension(plugin: SheetsExtendedPlugin): Extension {
-	return ViewPlugin.fromClass(
-		class SheetsExtendedLivePreviewPlugin {
-			decorations: DecorationSet;
-
-			constructor(private readonly view: EditorView) {
-				this.decorations = buildDecorations(view, plugin);
+	const field = StateField.define<DecorationSet>({
+		create: (state) => buildDecorations(state, plugin),
+		update: (decorations, transaction) => {
+			if (shouldRebuild(transaction)) {
+				return buildDecorations(transaction.state, plugin);
 			}
 
-			update(update: ViewUpdate): void {
-				if (update.docChanged || update.selectionSet || update.viewportChanged) {
-					this.decorations = buildDecorations(update.view, plugin);
-				}
-			}
+			return decorations.map(transaction.changes);
 		},
-		{
-			decorations: (value) => value.decorations,
-		},
-	);
+	});
+
+	return [
+		Prec.highest(field),
+		EditorView.decorations.from(field),
+	];
 }
 
-function buildDecorations(view: EditorView, plugin: SheetsExtendedPlugin): DecorationSet {
-	if (!view.state.field(editorLivePreviewField, false)) {
+function shouldRebuild(transaction: Transaction): boolean {
+	return transaction.docChanged
+		|| Boolean(transaction.selection)
+		|| livePreviewStateChanged(transaction)
+		|| transaction.effects.some((effect) => effect.is(rebuildSheetsExtendedLivePreviewEffect));
+}
+
+function livePreviewStateChanged(transaction: Transaction): boolean {
+	const before = transaction.startState.field(editorLivePreviewField, false);
+	const after = transaction.state.field(editorLivePreviewField, false);
+
+	return before !== after;
+}
+
+function buildDecorations(state: EditorState, plugin: SheetsExtendedPlugin): DecorationSet {
+	if (!state.field(editorLivePreviewField, false)) {
 		return Decoration.none;
 	}
 
 	const builder = new RangeSetBuilder<Decoration>();
-	const blocks = findEnhancedBlocks(view.state.doc, {
-		includeMarkdownTables: plugin.settings.enhanceNativeMarkdownTables && !isDisabledByFrontmatter(view),
+	const sourcePath = getSourcePath(state);
+	const blocks = findEnhancedBlocks(state.doc, {
+		includeMarkdownTables: plugin.settings.enhanceNativeMarkdownTables && !isDisabledByFrontmatter(state),
 		includeSheetCodeBlocks: plugin.settings.processSheetCodeBlocks,
 	});
 
 	for (const block of blocks) {
-		if (selectionIntersectsBlock(view, block)) {
+		if (selectionIntersectsBlock(state, block)) {
 			continue;
 		}
 
@@ -54,7 +78,7 @@ function buildDecorations(view: EditorView, plugin: SheetsExtendedPlugin): Decor
 			block.to,
 			Decoration.replace({
 				block: true,
-				widget: new EnhancedTableWidget(plugin, block, getSourcePath(view)),
+				widget: new EnhancedTableWidget(plugin, block, sourcePath),
 			}),
 		);
 	}
@@ -62,8 +86,8 @@ function buildDecorations(view: EditorView, plugin: SheetsExtendedPlugin): Decor
 	return builder.finish();
 }
 
-function selectionIntersectsBlock(view: EditorView, block: EnhancedEditorBlock): boolean {
-	return view.state.selection.ranges.some((range) => {
+function selectionIntersectsBlock(state: EditorState, block: EnhancedEditorBlock): boolean {
+	return state.selection.ranges.some((range) => {
 		if (range.empty) {
 			return range.from >= block.from && range.from <= block.to;
 		}
@@ -72,18 +96,19 @@ function selectionIntersectsBlock(view: EditorView, block: EnhancedEditorBlock):
 	});
 }
 
-function getSourcePath(view: EditorView): string {
-	return view.state.field(editorInfoField, false)?.file?.path ?? '';
+function getSourcePath(state: EditorState): string {
+	return state.field(editorInfoField, false)?.file?.path ?? '';
 }
 
-function isDisabledByFrontmatter(view: EditorView): boolean {
-	const text = view.state.doc.sliceString(0, Math.min(view.state.doc.length, 4096));
+function isDisabledByFrontmatter(state: EditorState): boolean {
+	const text = state.doc.sliceString(0, Math.min(state.doc.length, 4096));
 	const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
 
 	return match?.[1]?.split(/\r?\n/).some((line) => /^disable-sheet\s*:\s*true\s*$/i.test(line.trim())) ?? false;
 }
 
 class EnhancedTableWidget extends WidgetType {
+	private readonly key: string;
 	private component: Component | null = null;
 
 	constructor(
@@ -92,24 +117,49 @@ class EnhancedTableWidget extends WidgetType {
 		private readonly sourcePath: string,
 	) {
 		super();
+		this.key = createWidgetKey(plugin, block, sourcePath);
 	}
 
 	eq(other: WidgetType): boolean {
-		return other instanceof EnhancedTableWidget
-			&& other.block.type === this.block.type
-			&& other.block.source === this.block.source
-			&& other.sourcePath === this.sourcePath
-			&& other.plugin.settings.enableInlineStyles === this.plugin.settings.enableInlineStyles;
+		return other instanceof EnhancedTableWidget && other.key === this.key;
 	}
 
-	toDOM(): HTMLElement {
+	toDOM(view: EditorView): HTMLElement {
 		const container = createDiv({
 			cls: 'sheets-extended-live-preview',
 		});
+
+		container.addEventListener('click', (event) => {
+			if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+				return;
+			}
+
+			event.preventDefault();
+			event.stopPropagation();
+			view.dispatch({
+				selection: {
+					anchor: this.block.from,
+				},
+				scrollIntoView: true,
+			});
+			view.focus();
+		});
+
+		const cachedDom = renderedWidgetCache.get(this.key);
+
+		if (cachedDom) {
+			container.appendChild(cachedDom.cloneNode(true));
+			return container;
+		}
+
 		this.component = new Component();
 		this.component.load();
 		void this.render(container, this.component);
 		return container;
+	}
+
+	ignoreEvent(): boolean {
+		return true;
 	}
 
 	destroy(): void {
@@ -135,8 +185,13 @@ class EnhancedTableWidget extends WidgetType {
 				useMarkdownRenderer: true,
 			});
 
+			if (this.component !== component) {
+				return;
+			}
+
 			container.empty();
 			container.appendChild(table);
+			cacheRenderedWidget(this.key, table);
 		} catch (error) {
 			if (this.plugin.settings.enableDebugLogging) {
 				console.warn(`${this.plugin.manifest.name}: live preview enhancement failed`, error);
@@ -147,5 +202,32 @@ class EnhancedTableWidget extends WidgetType {
 				text: this.block.source,
 			});
 		}
+	}
+}
+
+function createWidgetKey(plugin: SheetsExtendedPlugin, block: EnhancedEditorBlock, sourcePath: string): string {
+	return JSON.stringify({
+		type: block.type,
+		source: block.source,
+		sourcePath,
+		enableInlineStyles: plugin.settings.enableInlineStyles,
+	});
+}
+
+function cacheRenderedWidget(key: string, table: HTMLTableElement): void {
+	const cachedTable = table.cloneNode(true);
+
+	if (cachedTable.instanceOf(HTMLElement)) {
+		renderedWidgetCache.set(key, cachedTable);
+	}
+
+	if (renderedWidgetCache.size <= MAX_WIDGET_CACHE_SIZE) {
+		return;
+	}
+
+	const firstKey = renderedWidgetCache.keys().next().value;
+
+	if (firstKey) {
+		renderedWidgetCache.delete(firstKey);
 	}
 }

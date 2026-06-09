@@ -22,7 +22,7 @@ export function findEnhancedBlocks(
 
 	while (lineNumber <= doc.lines) {
 		const line = doc.line(lineNumber);
-		const text = line.text.trim();
+		const text = stripQuotePrefix(line.text).trim();
 
 		if (options.includeSheetCodeBlocks && isSheetFenceStart(text)) {
 			const block = readSheetCodeBlock(doc, lineNumber);
@@ -55,13 +55,14 @@ function readSheetCodeBlock(doc: Text, startLineNumber: number): EnhancedEditorB
 
 	for (let lineNumber = startLineNumber + 1; lineNumber <= doc.lines; lineNumber += 1) {
 		const line = doc.line(lineNumber);
+		const text = stripQuotePrefix(line.text).trim();
 
-		if (line.text.trim().startsWith('```')) {
+		if (text.startsWith('```')) {
 			return {
 				type: 'sheet-code-block',
 				from: startLine.from,
 				to: line.to,
-				source: doc.sliceString(startLine.to + 1, line.from),
+				source: readNormalizedLines(doc, startLineNumber + 1, lineNumber - 1),
 			};
 		}
 	}
@@ -72,13 +73,13 @@ function readSheetCodeBlock(doc: Text, startLineNumber: number): EnhancedEditorB
 function readMarkdownTableBlock(doc: Text, startLineNumber: number): EnhancedEditorBlock | null {
 	let endLineNumber = startLineNumber;
 
-	while (endLineNumber <= doc.lines && isMarkdownTableLine(doc.line(endLineNumber).text.trim())) {
+	while (endLineNumber <= doc.lines && isMarkdownTableLine(stripQuotePrefix(doc.line(endLineNumber).text).trim())) {
 		endLineNumber += 1;
 	}
 
 	const from = doc.line(startLineNumber).from;
 	const to = doc.line(endLineNumber - 1).to;
-	const source = doc.sliceString(from, to);
+	const source = readNormalizedLines(doc, startLineNumber, endLineNumber - 1);
 	const lines = source.split(/\r?\n/).map((line) => line.trim());
 
 	if (lines.length < 2 || !lines.some(isMarkdownTableSeparatorLine)) {
@@ -95,4 +96,24 @@ function readMarkdownTableBlock(doc: Text, startLineNumber: number): EnhancedEdi
 
 function isSheetFenceStart(text: string): boolean {
 	return /^```\s*sheet(?:\s|$)/.test(text);
+}
+
+function readNormalizedLines(doc: Text, fromLineNumber: number, toLineNumber: number): string {
+	const lines: string[] = [];
+
+	for (let lineNumber = fromLineNumber; lineNumber <= toLineNumber; lineNumber += 1) {
+		lines.push(stripQuotePrefix(doc.line(lineNumber).text));
+	}
+
+	return lines.join('\n');
+}
+
+function stripQuotePrefix(line: string): string {
+	let stripped = line;
+
+	while (/^\s*> ?/.test(stripped)) {
+		stripped = stripped.replace(/^\s*> ?/, '');
+	}
+
+	return stripped;
 }
