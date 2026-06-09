@@ -1,4 +1,4 @@
-import type { App, MarkdownPostProcessorContext } from 'obsidian';
+import type { App, Component } from 'obsidian';
 
 export interface SheetsExtendedSettings {
 	enhanceNativeMarkdownTables: boolean;
@@ -21,8 +21,7 @@ export interface SheetMetadata {
 export interface RenderContext {
 	app: App;
 	sourcePath: string;
-	component?: MarkdownPostProcessorContext;
+	component: Component;
 	enableInlineStyles: boolean;
 	useMarkdownRenderer: boolean;
 }
-

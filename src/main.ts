@@ -1,5 +1,8 @@
-import { Notice, Plugin } from 'obsidian';
-import { DEFAULT_SETTINGS, SheetsExtendedSettingTab, type SheetsExtendedSettings } from './settings';
+import { Plugin } from 'obsidian';
+import { nativeTablePostProcessor } from './processors/nativeTablePostProcessor';
+import { sheetCodeBlockProcessor } from './processors/sheetCodeBlockProcessor';
+import { DEFAULT_SETTINGS, SheetsExtendedSettingTab } from './settings';
+import type { SheetsExtendedSettings } from './types';
 
 export default class SheetsExtendedPlugin extends Plugin {
 	settings!: SheetsExtendedSettings;
@@ -8,28 +11,10 @@ export default class SheetsExtendedPlugin extends Plugin {
 		await this.loadSettings();
 
 		this.addSettingTab(new SheetsExtendedSettingTab(this.app, this));
-
-		this.addCommand({
-			id: 'show-plugin-status',
-			name: 'Show plugin status',
-			callback: () => {
-				new Notice(`${this.manifest.name} is ready.`);
-			},
-		});
-
-		this.registerEvent(
-			this.app.workspace.on('layout-change', () => {
-				if (this.settings.enableDebugLogging) {
-					console.debug(`${this.manifest.name}: workspace layout changed`);
-				}
-			}),
+		this.registerMarkdownPostProcessor((element, context) => nativeTablePostProcessor(this, element, context));
+		this.registerMarkdownCodeBlockProcessor('sheet', (source, element, context) =>
+			sheetCodeBlockProcessor(this, source, element, context),
 		);
-
-		this.app.workspace.onLayoutReady(() => {
-			if (this.settings.enableDebugLogging) {
-				console.debug(`${this.manifest.name}: layout ready`);
-			}
-		});
 	}
 
 	onunload(): void {

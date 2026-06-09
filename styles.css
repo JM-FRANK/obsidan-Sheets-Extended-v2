@@ -6,3 +6,17 @@ Keep selectors scoped with the sheets-extended prefix to avoid affecting the vau
 .sheets-extended-settings-description {
 	color: var(--text-muted);
 }
+
+.sheets-extended-table {
+	width: 100%;
+}
+
+.sheets-extended-error {
+	border-inline-start: 4px solid var(--text-error);
+	color: var(--text-normal);
+	padding: var(--size-4-2) var(--size-4-3);
+}
+
+.sheets-extended-error pre {
+	white-space: pre-wrap;
+}
