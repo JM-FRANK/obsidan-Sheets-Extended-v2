@@ -1,5 +1,6 @@
 import { parseSheetMarkdownTable } from '../parser/parseSheetMarkdownTable';
 import type { SheetModel } from '../model/SheetModel';
+import type { SheetCell } from '../model/CellModel';
 import { readRenderedTable } from './readRenderedTable';
 
 export function readRenderedTableWithSourceHints(
@@ -21,7 +22,7 @@ export function readRenderedTableWithSourceHints(
 		for (const [colIndex, cell] of row.entries()) {
 			const sourceCell = sourceRow?.[colIndex];
 
-			cell.mergeMarker = sourceCell?.mergeMarker ?? null;
+			applySourceMergeHint(cell, sourceCell);
 			cell.align = sourceCell?.align ?? cell.align;
 			cell.verticalHeaderDelimiter = sourceCell?.verticalHeaderDelimiter ?? null;
 		}
@@ -40,4 +41,28 @@ function hasMatchingDimensions(domModel: SheetModel, sourceModel: SheetModel): b
 	}
 
 	return domModel.rows.every((row, rowIndex) => row.length === sourceModel.rows[rowIndex]?.length);
+}
+
+function applySourceMergeHint(cell: SheetCell, sourceCell: SheetCell | undefined): void {
+	if (!sourceCell) {
+		return;
+	}
+
+	const sourceText = sourceCell.source.type === 'markdown'
+		? sourceCell.source.content.trim()
+		: sourceCell.text.trim();
+
+	if (sourceText === '<') {
+		cell.mergeMarker = '<';
+		return;
+	}
+
+	if (sourceText === '^') {
+		cell.mergeMarker = '^';
+		return;
+	}
+
+	if (sourceText === '\\<' || sourceText === '\\^' || sourceText === '\\>') {
+		cell.mergeMarker = null;
+	}
 }

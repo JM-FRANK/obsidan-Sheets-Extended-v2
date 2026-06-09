@@ -25,17 +25,20 @@ export function nativeTablePostProcessor(
 
 		const source = getTableSource(context, table, tableIndex);
 
-		if (source) {
-			if (!detectEnhancedMarkdownTableSource(source)) {
-				continue;
+		if (source && detectEnhancedMarkdownTableSource(source)) {
+			if (plugin.settings.enableDebugLogging) {
+				console.debug(`${plugin.manifest.name}: source detected enhanced syntax, using hybrid source hints`);
 			}
-
 			context.addChild(new NativeTableRenderChild(plugin, table, context.sourcePath, source));
 			continue;
 		}
 
 		if (plugin.settings.enableDebugLogging) {
-			console.debug(`${plugin.manifest.name}: source unavailable, escape-aware detection skipped`);
+			if (source) {
+				console.debug(`${plugin.manifest.name}: source exists but no enhanced syntax detected, trying DOM fallback`);
+			} else {
+				console.debug(`${plugin.manifest.name}: source unavailable, using DOM fallback`);
+			}
 		}
 
 		if (!detectEnhancedTable(table)) {
@@ -68,7 +71,10 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 						console.debug(`${this.plugin.manifest.name}: source / DOM dimension mismatch, falling back to DOM table hints`);
 					}
 				})
-				: readRenderedTable(this.table);
+			: readRenderedTable(this.table);
+			if (this.plugin.settings.enableDebugLogging) {
+				console.debug(`${this.plugin.manifest.name}: final model merge marker count ${countMergeMarkers(model)}`);
+			}
 			resolveSpans(model);
 			resolveVerticalHeaders(model);
 			resolveStyles(model, this.plugin.settings.enableInlineStyles);
@@ -88,6 +94,13 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 			}
 		}
 	}
+}
+
+function countMergeMarkers(model: { rows: { mergeMarker: '<' | '^' | null }[][] }): number {
+	return model.rows.reduce(
+		(count, row) => count + row.filter((cell) => cell.mergeMarker === '<' || cell.mergeMarker === '^').length,
+		0,
+	);
 }
 
 function getTableSource(

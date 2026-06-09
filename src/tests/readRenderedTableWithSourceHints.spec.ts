@@ -3,6 +3,70 @@ import { readRenderedTableWithSourceHints } from '../input/readRenderedTableWith
 import { resolveSpans } from '../model/resolveSpans';
 
 describe('readRenderedTableWithSourceHints', () => {
+	it('does not clear DOM merge markers when ordinary source cells have no marker', () => {
+		const table = fakeTable([
+			['A', 'B', 'C'],
+			['foo', '<', 'bar'],
+			['baz', 'qux', 'test'],
+		]);
+		const model = readRenderedTableWithSourceHints(table, [
+			'|  A  |  B  |  C   |',
+			'| :-: | :-: | :--: |',
+			'| foo | text | bar  |',
+			'| baz | qux | test |',
+		].join('\n'));
+
+		resolveSpans(model);
+
+		expect(model.rows[1]?.[0]?.colspan).toBe(2);
+		expect(model.rows[1]?.[1]?.hidden).toBe(true);
+		expect(model.rows[0]?.[0]?.align).toBe('center');
+		expect(model.rows[0]?.[1]?.align).toBe('center');
+		expect(model.rows[0]?.[2]?.align).toBe('center');
+	});
+
+	it('applies vertical merge hints in Reading View source-aware tables', () => {
+		const table = fakeTable([
+			['A', 'B'],
+			['foo', 'bar'],
+			['^', 'baz'],
+			['qux', 'test'],
+		]);
+		const model = readRenderedTableWithSourceHints(table, [
+			'| A   | B    |',
+			'| --- | ---- |',
+			'| foo | bar  |',
+			'| ^   | baz  |',
+			'| qux | test |',
+		].join('\n'));
+
+		resolveSpans(model);
+
+		expect(model.rows[1]?.[0]?.rowspan).toBe(2);
+		expect(model.rows[2]?.[0]?.hidden).toBe(true);
+	});
+
+	it('clears DOM merge markers when source cells are escaped markers', () => {
+		const table = fakeTable([
+			['A', 'B'],
+			['literal', '<'],
+			['literal', '^'],
+		]);
+		const model = readRenderedTableWithSourceHints(table, [
+			'| A | B |',
+			'| --- | --- |',
+			'| literal | \\< |',
+			'| literal | \\^ |',
+		].join('\n'));
+
+		resolveSpans(model);
+
+		expect(model.rows[1]?.[1]?.mergeMarker).toBeNull();
+		expect(model.rows[2]?.[1]?.mergeMarker).toBeNull();
+		expect(model.rows[1]?.[1]?.hidden).toBe(false);
+		expect(model.rows[2]?.[1]?.hidden).toBe(false);
+	});
+
 	it('keeps rendered DOM content while applying source merge and alignment hints', () => {
 		const table = fakeTable([
 			['格助词', '用法', '例'],
