@@ -29,7 +29,7 @@ export function getVerticalHeaderDelimiterColumns(model: SheetModel): number[] {
 	for (let colIndex = 0; colIndex < width; colIndex += 1) {
 		const cells = model.rows.map((row) => row[colIndex]);
 
-		if (cells.length > 0 && cells.every((cell) => cell && isVerticalHeaderDelimiter(cell.text.trim()))) {
+		if (cells.length > 0 && cells.every((cell) => cell && isDelimiterCell(cell))) {
 			columns.push(colIndex);
 		}
 	}
@@ -41,3 +41,6 @@ export function isVerticalHeaderDelimiter(input: string): boolean {
 	return /^-{1,3}(?:\s*~\s*(?:\.[A-Za-z_][\w-]*\s*)*(?:\{.*\})?)?$/.test(input.trim());
 }
 
+function isDelimiterCell(cell: { text: string; verticalHeaderDelimiter: boolean | null }): boolean {
+	return cell.verticalHeaderDelimiter ?? isVerticalHeaderDelimiter(cell.text.trim());
+}

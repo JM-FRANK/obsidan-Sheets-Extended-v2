@@ -2,10 +2,10 @@ import { MarkdownRenderChild, type MarkdownPostProcessorContext } from 'obsidian
 import { detectEnhancedTable } from '../detect/detectEnhancedTable';
 import { detectEnhancedMarkdownTableSource, isMarkdownTableLine, isMarkdownTableSeparatorLine } from '../editor/detectEnhancedMarkdownSource';
 import { readRenderedTable } from '../input/readRenderedTable';
+import { readRenderedTableWithSourceHints } from '../input/readRenderedTableWithSourceHints';
 import { resolveSpans } from '../model/resolveSpans';
 import { resolveStyles } from '../model/resolveStyles';
 import { resolveVerticalHeaders } from '../model/resolveVerticalHeaders';
-import { parseSheetMarkdownTable } from '../parser/parseSheetMarkdownTable';
 import { renderEnhancedTable } from '../render/renderEnhancedTable';
 import type SheetsExtendedPlugin from '../main';
 
@@ -63,7 +63,7 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 	private async render(): Promise<void> {
 		try {
 			const model = this.source
-				? parseSheetMarkdownTable(this.source, { classes: {} })
+				? readRenderedTableWithSourceHints(this.table, this.source)
 				: readRenderedTable(this.table);
 			resolveSpans(model);
 			resolveVerticalHeaders(model);
@@ -74,7 +74,7 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 				sourcePath: this.sourcePath,
 				component: this,
 				enableInlineStyles: this.plugin.settings.enableInlineStyles,
-				useMarkdownRenderer: Boolean(this.source),
+				useMarkdownRenderer: false,
 			});
 
 			this.table.replaceWith(newTable);

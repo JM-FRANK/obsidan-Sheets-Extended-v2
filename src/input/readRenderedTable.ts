@@ -16,6 +16,7 @@ export function readRenderedTable(table: HTMLTableElement): SheetModel {
 				classNames: Array.from(cell.classList),
 				inlineStyle: cell.getAttribute('style') ?? '',
 				align: cell.getAttribute('align') ?? cell.style.textAlign,
+				mergeMarker: parseDomMergeMarker(cell.textContent?.trim() ?? ''),
 			}),
 		),
 	);
@@ -28,3 +29,10 @@ export function readRenderedTable(table: HTMLTableElement): SheetModel {
 	});
 }
 
+function parseDomMergeMarker(text: string): '<' | '^' | null {
+	if (text === '<' || text === '^') {
+		return text;
+	}
+
+	return null;
+}

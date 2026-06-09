@@ -12,7 +12,7 @@ function resolveHorizontalSpans(rows: SheetCell[][]): void {
 		let target: SheetCell | null = null;
 
 		for (const cell of row) {
-			if (cell.text.trim() === '<') {
+			if (cell.mergeMarker === '<') {
 				if (!target) {
 					throw new Error('Horizontal merge marker has no cell to its left.');
 				}
@@ -34,7 +34,7 @@ function resolveVerticalSpans(rows: SheetCell[][]): void {
 		const rowTargets = new Set<SheetCell>();
 
 		for (const cell of row) {
-			if (cell.text.trim() !== '^') {
+			if (cell.mergeMarker !== '^') {
 				continue;
 			}
 
@@ -73,4 +73,3 @@ function findVerticalTarget(rows: SheetCell[][], rowIndex: number, colIndex: num
 
 	return null;
 }
-

@@ -15,6 +15,8 @@ export interface SheetCellStyle {
 	inlineStyle: Record<string, string>;
 }
 
+export type SheetMergeMarker = '<' | '^' | null;
+
 export interface SheetCell {
 	row: number;
 	col: number;
@@ -27,6 +29,8 @@ export interface SheetCell {
 	colspan: number;
 	rowspan: number;
 	hidden: boolean;
+	mergeMarker: SheetMergeMarker;
+	verticalHeaderDelimiter: boolean | null;
 	isMergeMarker: boolean;
 	renderAsHeader: boolean;
 	resolvedStyle: SheetCellStyle;
@@ -41,6 +45,8 @@ export function createCell(params: {
 	classNames?: string[];
 	inlineStyle?: string;
 	align?: string;
+	mergeMarker?: SheetMergeMarker;
+	verticalHeaderDelimiter?: boolean | null;
 }): SheetCell {
 	return {
 		row: params.row,
@@ -54,6 +60,8 @@ export function createCell(params: {
 		colspan: 1,
 		rowspan: 1,
 		hidden: false,
+		mergeMarker: params.mergeMarker ?? null,
+		verticalHeaderDelimiter: params.verticalHeaderDelimiter ?? null,
 		isMergeMarker: false,
 		renderAsHeader: params.tag === 'th',
 		resolvedStyle: {
@@ -62,4 +70,3 @@ export function createCell(params: {
 		},
 	};
 }
-

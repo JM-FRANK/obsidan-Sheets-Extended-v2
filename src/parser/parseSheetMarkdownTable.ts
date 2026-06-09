@@ -1,4 +1,5 @@
 import { createCell } from '../model/CellModel';
+import { isVerticalHeaderDelimiter } from '../model/resolveVerticalHeaders';
 import { createSheetModel, type SheetModel } from '../model/SheetModel';
 import type { SheetMetadata } from '../types';
 import { parseStyleDirective } from './parseStyleDirective';
@@ -47,6 +48,8 @@ export function parseSheetMarkdownTable(
 					content,
 				},
 				align: columnAlignments[colIndex] ?? '',
+				mergeMarker: parseMergeMarker(content),
+				verticalHeaderDelimiter: isVerticalHeaderDelimiter(content),
 			});
 		}),
 	);
@@ -91,6 +94,16 @@ export function parseColumnAlignment(separatorCell: string): string {
 	}
 
 	return '';
+}
+
+export function parseMergeMarker(sourceCell: string): '<' | '^' | null {
+	const text = sourceCell.trim();
+
+	if (text === '<' || text === '^') {
+		return text;
+	}
+
+	return null;
 }
 
 function isSeparatorLine(line: string): boolean {

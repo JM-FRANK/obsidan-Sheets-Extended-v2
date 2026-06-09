@@ -59,6 +59,24 @@ describe('resolveSpans', () => {
 
 		expect(() => resolveSpans(model)).toThrow('Horizontal merge marker has no cell to its left.');
 	});
+
+	it('does not merge escaped marker text without explicit merge markers', () => {
+		const model = createSheetModel({
+			rows: [
+				row(['A', 'B'], 0),
+				row(['foo', '\\<'], 1),
+				row(['bar', '\\^'], 2),
+			],
+		});
+		model.rows[1]![1]!.mergeMarker = null;
+		model.rows[2]![1]!.mergeMarker = null;
+
+		resolveSpans(model);
+
+		expect(model.rows[1]?.[0]?.colspan).toBe(1);
+		expect(model.rows[1]?.[1]?.hidden).toBe(false);
+		expect(model.rows[2]?.[1]?.hidden).toBe(false);
+	});
 });
 
 function row(values: string[], rowIndex: number) {
@@ -67,6 +85,7 @@ function row(values: string[], rowIndex: number) {
 			row: rowIndex,
 			col: colIndex,
 			text: value,
+			mergeMarker: value === '<' || value === '^' ? value : null,
 			source: {
 				type: 'markdown',
 				content: value,
@@ -74,4 +93,3 @@ function row(values: string[], rowIndex: number) {
 		}),
 	);
 }
-
