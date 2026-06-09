@@ -8,7 +8,7 @@ export function splitMarkdownTableRow(line: string): string[] {
 		const next = trimmed[index + 1];
 
 		if (char === '\\' && next === '|') {
-			current += '|';
+			current += '\\|';
 			index += 1;
 			continue;
 		}
@@ -25,4 +25,3 @@ export function splitMarkdownTableRow(line: string): string[] {
 	cells.push(current.trim());
 	return cells;
 }
-

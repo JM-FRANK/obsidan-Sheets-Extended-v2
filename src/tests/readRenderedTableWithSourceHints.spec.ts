@@ -29,6 +29,26 @@ describe('readRenderedTableWithSourceHints', () => {
 		expect(model.rows[0]?.[1]?.align).toBe('center');
 		expect(model.rows[0]?.[2]?.align).toBe('left');
 	});
+
+	it('falls back to DOM-only data when source and DOM dimensions differ', () => {
+		let mismatchLogged = false;
+		const table = fakeTable([
+			['A', 'B'],
+			['foo', 'bar'],
+		]);
+		const model = readRenderedTableWithSourceHints(table, [
+			'| A | B | C |',
+			'| :---: | :---: | :---: |',
+			'| foo | < | baz |',
+		].join('\n'), () => {
+			mismatchLogged = true;
+		});
+
+		expect(mismatchLogged).toBe(true);
+		expect(model.rows[0]?.[0]?.align).toBe('');
+		expect(model.rows[1]?.[1]?.mergeMarker).toBeNull();
+		expect(model.rows[1]?.[1]?.text).toBe('bar');
+	});
 });
 
 function fakeTable(rows: string[][]): HTMLTableElement {
@@ -51,4 +71,3 @@ function fakeCell(text: string, tagName: string): HTMLTableCellElement {
 		getAttribute: () => null,
 	} as unknown as HTMLTableCellElement;
 }
-

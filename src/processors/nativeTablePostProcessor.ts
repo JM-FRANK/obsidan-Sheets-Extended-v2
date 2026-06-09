@@ -63,7 +63,11 @@ class NativeTableRenderChild extends MarkdownRenderChild {
 	private async render(): Promise<void> {
 		try {
 			const model = this.source
-				? readRenderedTableWithSourceHints(this.table, this.source)
+				? readRenderedTableWithSourceHints(this.table, this.source, () => {
+					if (this.plugin.settings.enableDebugLogging) {
+						console.debug(`${this.plugin.manifest.name}: source / DOM dimension mismatch, falling back to DOM table hints`);
+					}
+				})
 				: readRenderedTable(this.table);
 			resolveSpans(model);
 			resolveVerticalHeaders(model);

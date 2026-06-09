@@ -3,6 +3,39 @@ import { parseSheetMarkdownTable } from '../parser/parseSheetMarkdownTable';
 import { resolveSpans } from '../model/resolveSpans';
 
 describe('parseSheetMarkdownTable', () => {
+	it('resolves simple horizontal merges with centered alignment', () => {
+		const model = parseSheetMarkdownTable([
+			'|  A  |  B  |  C   |',
+			'| :-: | :-: | :--: |',
+			'| foo |  <  | bar  |',
+			'| baz | qux | test |',
+		].join('\n'), { classes: {} });
+
+		resolveSpans(model);
+
+		expect(model.rows[0]?.[0]?.align).toBe('center');
+		expect(model.rows[0]?.[1]?.align).toBe('center');
+		expect(model.rows[0]?.[2]?.align).toBe('center');
+		expect(model.rows[1]?.[0]?.colspan).toBe(2);
+		expect(model.rows[1]?.[1]?.hidden).toBe(true);
+	});
+
+	it('resolves simple vertical merges', () => {
+		const model = parseSheetMarkdownTable([
+			'| A   | B    |',
+			'| --- | ---- |',
+			'| foo | bar  |',
+			'| ^   | baz  |',
+			'| qux | test |',
+		].join('\n'), { classes: {} });
+
+		resolveSpans(model);
+
+		expect(model.rows[1]?.[0]?.rowspan).toBe(2);
+		expect(model.rows[2]?.[0]?.hidden).toBe(true);
+		expect(model.rows[3]?.[0]?.hidden).toBe(false);
+	});
+
 	it('parses column alignment from Markdown separator cells', () => {
 		const model = parseSheetMarkdownTable([
 			'| A | B | C | D |',
@@ -68,7 +101,7 @@ describe('parseSheetMarkdownTable', () => {
 			'| a\\|b | \\< |',
 		].join('\n'), { classes: {} });
 
-		expect(model.rows[1]?.[0]?.text).toBe('a|b');
+		expect(model.rows[1]?.[0]?.text).toBe('a\\|b');
 		expect(model.rows[1]?.[1]?.text).toBe('\\<');
 		expect(model.rows[1]?.[1]?.mergeMarker).toBeNull();
 		expect(model.rows[1]).toHaveLength(2);
@@ -87,8 +120,8 @@ describe('parseSheetMarkdownTable', () => {
 		].join('\n'), { classes: {} });
 
 		expect(model.rows[1]).toHaveLength(4);
-		expect(model.rows[1]?.[2]?.text).toBe('{森|もり}さんは７時に起きます。');
-		expect(model.rows[1]?.[3]?.text).toBe('[[path|alias]]');
+		expect(model.rows[1]?.[2]?.text).toBe('{森\\|もり}さんは７時に起きます。');
+		expect(model.rows[1]?.[3]?.text).toBe('[[path\\|alias]]');
 		expect(model.rows[2]?.[0]?.mergeMarker).toBe('^');
 		expect(model.rows[0]?.[0]?.align).toBe('center');
 		expect(model.rows[0]?.[1]?.align).toBe('center');
