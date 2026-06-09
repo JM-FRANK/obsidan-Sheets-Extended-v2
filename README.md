@@ -1,8 +1,20 @@
 # Sheets Extended
 
+Thanks to [Sheet-Extended](https://github.com/niconekoru/obsidan-advanced-table-xt), this plugin is a modern refactor of Sheet Extended.
+
 Sheets Extended v2 enhances Obsidian Reading View tables only when a table contains explicit Sheets Extended syntax.
 
 The plugin intentionally leaves ordinary Markdown tables to Obsidian and table editing workflows to Advanced Tables or other editor-focused plugins.
+
+
+## Why v2
+
+Compared with the original Sheet Extended plugin, this version focuses on safer behavior with modern Obsidian:
+
+- Fixes cases where ordinary Markdown tables, especially tables inside callouts, could disappear in Reading View.
+- Avoids interfering with ordinary Markdown tables that do not use Sheets Extended syntax.
+- Keeps table editing, formatting, sorting, and navigation delegated to Obsidian or editor-focused plugins.
+- Focuses only on features Obsidian does not provide natively, such as cell merging, vertical headers, explicit `sheet` blocks, and style directives.
 
 ## Features
 
