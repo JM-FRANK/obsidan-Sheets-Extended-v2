@@ -15,6 +15,31 @@ Keep selectors scoped with the sheets-extended prefix to avoid affecting the vau
 	margin-block: var(--size-4-2);
 }
 
+.sheets-extended-live-preview .table-wrapper {
+	overflow-x: auto;
+}
+
+.sheets-extended-live-preview table {
+	border-collapse: collapse;
+}
+
+.sheets-extended-live-preview th,
+.sheets-extended-live-preview td {
+	border: var(--table-border-width, 1px) solid var(--table-border-color);
+	padding: var(--table-cell-padding, 4px 8px);
+	vertical-align: top;
+}
+
+.sheets-extended-live-preview th {
+	background-color: var(--table-header-background);
+	font-weight: var(--bold-weight);
+}
+
+.sheets-extended-live-preview th p,
+.sheets-extended-live-preview td p {
+	margin: 0;
+}
+
 .sheets-extended-error {
 	border-inline-start: 4px solid var(--text-error);
 	color: var(--text-normal);

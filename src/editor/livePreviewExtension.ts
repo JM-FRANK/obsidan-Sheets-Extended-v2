@@ -124,7 +124,7 @@ class EnhancedTableWidget extends WidgetType {
 
 	toDOM(view: EditorView): HTMLElement {
 		const container = createDiv({
-			cls: 'sheets-extended-live-preview',
+			cls: 'sheets-extended-live-preview markdown-rendered',
 		});
 
 		container.addEventListener('click', (event) => {
@@ -188,8 +188,11 @@ class EnhancedTableWidget extends WidgetType {
 			}
 
 			container.empty();
-			container.appendChild(table);
-			cacheRenderedWidget(this.key, table);
+			const tableWrapper = container.createDiv({
+				cls: 'table-wrapper',
+			});
+			tableWrapper.appendChild(table);
+			cacheRenderedWidget(this.key, tableWrapper);
 		} catch (error) {
 			if (this.plugin.settings.enableDebugLogging) {
 				console.warn(`${this.plugin.manifest.name}: live preview enhancement failed`, error);
@@ -212,8 +215,8 @@ function createWidgetKey(plugin: SheetsExtendedPlugin, block: EnhancedEditorBloc
 	});
 }
 
-function cacheRenderedWidget(key: string, table: HTMLTableElement): void {
-	const cachedTable = table.cloneNode(true);
+function cacheRenderedWidget(key: string, element: HTMLElement): void {
+	const cachedTable = element.cloneNode(true);
 
 	if (cachedTable.instanceOf(HTMLElement)) {
 		renderedWidgetCache.set(key, cachedTable);
